@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pydantic
+python-dotenv
+pdfplumber
+pymongo
+groq
+PyPDF2
