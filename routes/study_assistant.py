@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services.ai_service import ai, summarize_text, answer_question
+from services.ai_service import ai, summarize_text, answer_question, explain_topic_ai
 from db.mongo import notes_collection
 
 router = APIRouter()
@@ -30,11 +30,11 @@ class QnARequest(BaseModel):
 # 📌 Routes
 # ----------------------------
 
-# 1️⃣ Explain any topic
+# 1️⃣ Explain any topic (PREMIUM STRUCTURED JSON FORMAT)
 @router.post("/explain")
 async def explain_topic(request: ExplainRequest):
-    prompt = f"Explain the following topic in very simple and easy words:\n\n{request.topic}"
-    return {"explanation": ai(prompt)}
+    explanation_json = explain_topic_ai(request.topic)
+    return {"explanation": explanation_json}
 
 # 2️⃣ Make notes
 @router.post("/make-notes")
