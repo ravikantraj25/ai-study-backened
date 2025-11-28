@@ -1,6 +1,12 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from services.ai_service import ai, summarize_text, answer_question
+from services.ai_service import (
+    ai,
+    summarize_text,
+    generate_notes,
+    explain_topic,
+    answer_question,
+)
 from db.mongo import notes_collection
 
 router = APIRouter()
@@ -27,36 +33,62 @@ class QnARequest(BaseModel):
 
 
 # ----------------------------
-# 📌 Routes
+# 📌 ROUTES
 # ----------------------------
 
-# 1️⃣ Explain any topic
+# 1️⃣ Explain topic (WORLD-CLASS OUTPUT)
 @router.post("/explain")
-async def explain_topic(request: ExplainRequest):
-    prompt = f"Explain the following topic in very simple and easy words:\n\n{request.topic}"
-    return {"explanation": ai(prompt)}
+async def explain_topic_route(request: ExplainRequest):
+    try:
+        explanation = explain_topic(request.topic)
+        return {"explanation": explanation}
+    except Exception as e:
+        return {"error": f"Explain error: {str(e)}"}
 
-# 2️⃣ Make notes
+
+# 2️⃣ Make Notes — uses NEW generate_notes()
 @router.post("/make-notes")
 async def make_notes(request: NotesRequest):
-    prompt = f"Convert the following text into clear bullet-point notes:\n\n{request.text}"
-    return {"notes": ai(prompt)}
+    try:
+        notes = generate_notes(request.text)
+        return {"notes": notes}
+    except Exception as e:
+        return {"error": f"Notes error: {str(e)}"}
+
 
 # 3️⃣ Make MCQs
 @router.post("/make-mcq")
 async def make_mcq(request: MCQRequest):
-    prompt = f"Create 5 MCQs from the following text. Each MCQ must have 4 options and the correct answer:\n\n{request.text}"
-    return {"mcqs": ai(prompt)}
+    try:
+        prompt = (
+            f"Create 5 MCQs from the following text. "
+            f"Each MCQ must have 4 options and the correct answer:\n\n{request.text}"
+        )
+        mcqs = ai(prompt)
+        return {"mcqs": mcqs}
+    except Exception as e:
+        return {"error": f"MCQ error: {str(e)}"}
+
 
 # 4️⃣ Summarize text
 @router.post("/summarize-text")
 async def summarize_any_text(request: SummarizeTextRequest):
-    return {"summary": summarize_text(request.text)}
+    try:
+        summary = summarize_text(request.text)
+        return {"summary": summary}
+    except Exception as e:
+        return {"error": f"Summary error: {str(e)}"}
 
-# 5️⃣ QnA from PDF text
+
+# 5️⃣ PDF QnA
 @router.post("/qna")
 async def qna(request: QnARequest):
-    return {"answer": answer_question(request.text, request.question)}
+    try:
+        answer = answer_question(request.text, request.question)
+        return {"answer": answer}
+    except Exception as e:
+        return {"error": f"QnA error: {str(e)}"}
+
 
 # 6️⃣ Fetch saved notes
 @router.get("/notes")
