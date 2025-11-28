@@ -1,16 +1,9 @@
-import os
-from dotenv import load_dotenv
 from pymongo import MongoClient
+import certifi
 
-load_dotenv()
+MONGO_URI = "mongodb+srv://princegaurav384_db_user:Ravikant384@ai-study-cluster.b6keteg.mongodb.net/?retryWrites=true&w=majority&appName=ai-study-cluster"
 
-MONGO_URI = os.getenv("MONGO_URI")
-
-print("DEBUG MONGO URI:", MONGO_URI)   # 🔥 ADD THIS
-
-client = MongoClient(MONGO_URI)
-
-db = client["ai_study_database"]
-
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
+db = client["ai-study-db"]
 notes_collection = db["notes"]
-qna_collection = db["qna"]
+

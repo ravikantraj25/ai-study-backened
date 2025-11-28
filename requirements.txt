@@ -6,3 +6,5 @@ pdfplumber
 pymongo
 groq
 PyPDF2
+python-multipart
+starlette

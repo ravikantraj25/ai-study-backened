@@ -1,7 +1,8 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Body
 from services.pdf_service import extract_text_from_pdf
-from services.ai_service import summarize_text
+from services.ai_service import summarize_text, ai
 from db.mongo import notes_collection
+
 
 router = APIRouter()
 
@@ -17,7 +18,7 @@ async def summarize_pdf(file: UploadFile = File(...)):
 
     summary = summarize_text(raw_text)
 
-    # 🔥 Save to MongoDB
+    # save in mongodb
     note = {
         "fileName": file.filename,
         "raw_text": raw_text,
@@ -27,6 +28,7 @@ async def summarize_pdf(file: UploadFile = File(...)):
     result = notes_collection.insert_one(note)
 
     return {
-        "note_id": str(result.inserted_id),   # 🔥 THIS was missing
-        "summary": summary
+        "note_id": str(result.inserted_id),
+        "summary": summary,
+        "raw_text": raw_text     # <-- REQUIRED for QnA
     }

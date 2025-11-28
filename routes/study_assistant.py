@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Body
 from services.ai_service import ai, summarize_text, answer_question
+from db.mongo import notes_collection   # <-- added for notes route
 
 router = APIRouter()
 
@@ -30,9 +31,17 @@ async def summarize_any_text(payload: dict = Body(...)):
     text = payload.get("text", "")
     return {"summary": summarize_text(text)}
 
-# 5️⃣ QnA from PDF (using extracted text)
+# 5️⃣ QnA from PDF
 @router.post("/qna")
 async def qna(payload: dict = Body(...)):
     text = payload.get("text", "")
     question = payload.get("question", "")
     return {"answer": answer_question(text, question)}
+
+# 6️⃣ Fetch notes history (NEW ROUTE)
+@router.get("/notes")
+def get_notes():
+    notes = list(notes_collection.find().sort("_id", -1))
+    for n in notes:
+        n["_id"] = str(n["_id"])  # Convert ObjectId to string
+    return notes
