@@ -102,46 +102,26 @@ def fix_bullets(markdown: str) -> str:
 # ---------------------------------------------------------------------
 def summarize_text(text):
     prompt = f"""
-You are an AI that creates PERFECT, CLEAN, BEAUTIFUL Markdown summaries.
+    Summarize the text below in a clean, well-formatted structure.
 
-⚠ VERY IMPORTANT:
-❌ DO NOT create tables from the PDF content.
-❌ DO NOT try to convert grade lists or marks into tables.
-❌ DO NOT split data with | symbols.
-✔ ONLY create a table if the input text ALREADY contains a proper table.
+    Rules:
+    - Create headings based ONLY on the content (do NOT use generic headings).
+    - Keep the summary formal, clean and easy to read.
+    - Use bullet points wherever needed.
+    - Do NOT add unnecessary sections like "Main Concepts", "Key Definitions" etc.
+    - Only include headings that come from the real content.
 
-# MARKDOWN RULES
-1. Use headings:
-# 📘 Summary
-## 🔹 Main Concepts
-### ➤ Subtopic
+    Text:
+    {text}
+    """
 
-2. Use bullet points only:
-- point
-- point
+    response = client.chat.completions.create(
+        model="llama-3.1-70b-versatile",
+        messages=[{"role": "user", "content": prompt}]
+    )
 
-3. Keep everything simple and readable.
+    return response.choices[0].message.content
 
-4. Add final sections:
-## 📝 Exam Notes
-## 🧠 Key Definitions
-
------------------------------------
-TEXT TO SUMMARIZE:
-{text}
------------------------------------
-
-Now create a PERFECT Markdown summary WITHOUT generating any artificial tables:
-"""
-    raw = ai(prompt)
-
-    # Cleanup: remove any accidental | table structures
-    cleaned = re.sub(r"\|.*\|", "", raw)
-
-    cleaned = fix_bullets(cleaned)
-    cleaned = fix_headings(cleaned)
-
-    return cleaned
 
 
 
