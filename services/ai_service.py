@@ -124,19 +124,43 @@ Text:
 # ================================================================
 def generate_notes(text: str):
     prompt = f"""
-Convert the following text into clean, structured bullet points.
+You are an expert academic note-maker. Convert the given content into exceptionally clean,
+professionally structured bullet notes.
 
-OUTPUT RULES (VERY IMPORTANT):
-- Use ONLY bullet points (starting with "-").
-- No paragraphs at all.
-- No headings unless necessary.
-- Keep notes short, clear, and exam-friendly.
-- Do NOT add anything extra.
-- Do NOT change meaning.
-- Keep simple language.
+💎 OUTPUT FORMAT (STRICT):
+Return ONLY valid JSON in the following structure:
 
-TEXT:
+{{
+  "success": true,
+  "style": "premium_bullet_notes",
+  "notes": [
+      "bullet 1",
+      "bullet 2",
+      "bullet 3"
+  ]
+}}
+
+💎 OUTPUT RULES:
+- Do NOT include hyphens, numbers, bullets, emojis, or special symbols inside note items.
+- Do NOT return paragraphs.
+- Do NOT write long sentences.
+- Do NOT add extra or invented information.
+- Do NOT repeat ideas.
+- Merge related ideas into one clean bullet.
+- Keep language simple and exam-friendly.
+- Every bullet must be crisp, premium, and high-quality.
+
+🎨 STYLE:
+- Modern
+- Minimal
+- Elegant
+- Highly readable
+- World-class academic formatting
+
+📘 INPUT TEXT:
 {text}
+
+Now generate the JSON output exactly in the above structure.
 """
     return ai(prompt)
 

@@ -8,6 +8,7 @@ from services.ai_service import (
     answer_question,
 )
 from db.mongo import notes_collection
+import json
 
 router = APIRouter()
 
@@ -36,7 +37,7 @@ class QnARequest(BaseModel):
 # 📌 ROUTES
 # ----------------------------
 
-# 1️⃣ Explain topic (WORLD-CLASS OUTPUT)
+# 1️⃣ Explain topic
 @router.post("/explain")
 async def explain_topic_route(request: ExplainRequest):
     try:
@@ -46,12 +47,13 @@ async def explain_topic_route(request: ExplainRequest):
         return {"error": f"Explain error: {str(e)}"}
 
 
-# 2️⃣ Make Notes — uses NEW generate_notes()
+# 2️⃣ Make Notes — UPDATED FOR PREMIUM JSON
 @router.post("/make-notes")
 async def make_notes(request: NotesRequest):
     try:
-        notes = generate_notes(request.text)
-        return {"notes": notes}
+        raw = generate_notes(request.text)      # AI returns JSON string
+        data = json.loads(raw)                  # Convert string → dict
+        return data                             
     except Exception as e:
         return {"error": f"Notes error: {str(e)}"}
 
