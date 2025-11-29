@@ -61,11 +61,14 @@ def force_json(output: str):
 # ================================================================
 def explain_topic(topic: str):
     prompt = f"""
-You are the world's best educator. Explain the topic so clearly that a student
-never needs YouTube or Google after reading your answer.
+You are the world's best educator. Create a beautifully structured explanation for the topic.
 
-⚡ ALWAYS return in THIS EXACT JSON FORMAT (no extra text!) ⚡
+⚡ VERY IMPORTANT — OUTPUT RULES ⚡
+You MUST return ONLY valid JSON.
+No markdown. No ```json. No notes. No text outside JSON.
+If you cannot follow JSON, output an empty JSON array [].
 
+📌 EXACT JSON FORMAT YOU MUST RETURN:
 [
   {{
     "title": "Section Title",
@@ -73,29 +76,35 @@ never needs YouTube or Google after reading your answer.
     "bullets": ["point 1", "point 2", "point 3"],
     "examples": ["real example 1", "real example 2"],
     "faqs": [
-       {{"q": "student-style question?", "a": "short clear answer"}}
+      {{"q": "student-style question?", "a": "short clear answer"}}
     ],
     "important_terms": ["term1", "term2"]
   }}
 ]
 
-📌 RULES:
-- Create 3–7 sections.
-- Write like the best school/college teacher.
-- Keep paragraphs short and clean.
+📌 CONTENT RULES:
+- Create 3–6 well-organized sections.
+- Each section MUST include:
+  • title  
+  • paragraph  
+  • bullets  
+  • examples  
+  • faqs  
+  • important_terms
+- Paragraph must be 2–4 simple lines.
 - Bullets must be crisp and factual.
-- Give real-life examples students can understand.
-- Provide useful glossary terms.
-- Add 1–2 FAQs per section.
-- NO filler text.
-- NO markdown outside JSON.
-- ONLY valid JSON array.
+- Examples must be real & relatable.
+- FAQs must be 1–2 short Q&A per section.
+- Terms must be meaningful & relevant.
+- DO NOT add anything outside JSON.
+- DO NOT use markdown formatting.
 
 Topic: {topic}
 """
 
     raw = ai(prompt)
     return force_json(raw)
+
 
 
 # ================================================================
