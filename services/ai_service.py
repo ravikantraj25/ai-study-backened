@@ -124,19 +124,22 @@ Text:
 # ================================================================
 def generate_notes(text: str):
     prompt = f"""
-Convert the text into exam-ready bullet notes.
+Convert the following text into clean, structured bullet points.
 
-Rules:
-- Short bullets only.
-- Section-wise grouping.
-- No extra explanation.
-- No invented info.
-- Simple language.
+OUTPUT RULES (VERY IMPORTANT):
+- Use ONLY bullet points (starting with "-").
+- No paragraphs at all.
+- No headings unless necessary.
+- Keep notes short, clear, and exam-friendly.
+- Do NOT add anything extra.
+- Do NOT change meaning.
+- Keep simple language.
 
 TEXT:
 {text}
 """
     return ai(prompt)
+
 
 
 # ================================================================
