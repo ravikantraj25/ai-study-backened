@@ -9,7 +9,9 @@ PyPDF2
 python-multipart
 starlette
 PyMuPDF
-passlib[bcrypt]
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
 pyjwt
 requests
+email-validator
 pydantic[email]
