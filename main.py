@@ -1,3 +1,9 @@
+# -------------------------------
+# Load environment variables
+# -------------------------------
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.summarize import router as summarize_router
@@ -7,8 +13,6 @@ from starlette.requests import Request
 from starlette.responses import Response
 from routes.auth import router as auth_router
 from routes.history import router as history_router
-
-
 
 
 # ------------------------------------------------------------
@@ -35,14 +39,14 @@ app = FastAPI()
 
 
 # ------------------------------------------------------------
-# FIXED: CORS applied BEFORE routers
+# CORS (IMPORTANT: must be before routes)
 # ------------------------------------------------------------
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],          # allow all origins
+    allow_origins=["*"],          
     allow_credentials=True,
-    allow_methods=["*"],          # VERY IMPORTANT (allows OPTIONS)
-    allow_headers=["*"],          # allow all headers
+    allow_methods=["*"],         
+    allow_headers=["*"],          
 )
 
 
