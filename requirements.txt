@@ -9,3 +9,7 @@ PyPDF2
 python-multipart
 starlette
 PyMuPDF
+passlib[bcrypt]
+pyjwt
+python-dotenv
+requests

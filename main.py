@@ -5,6 +5,10 @@ from routes.study_assistant import router as study_router
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from routes.auth import router as auth_router
+from routes.history import router as history_router
+
+
 
 
 # ------------------------------------------------------------
@@ -53,6 +57,8 @@ app.add_middleware(LimitUploadSizeMiddleware)
 # ------------------------------------------------------------
 app.include_router(summarize_router)
 app.include_router(study_router)
+app.include_router(auth_router)
+app.include_router(history_router)
 
 
 # ------------------------------------------------------------
