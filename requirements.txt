@@ -13,3 +13,5 @@ passlib[bcrypt]
 pyjwt
 python-dotenv
 requests
+email-validator
+pydantic[email]
