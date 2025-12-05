@@ -74,19 +74,22 @@ async def make_notes(request: NoteRequest, req: Request, background_tasks: Backg
         # 1. Generate Notes (Returns Dict)
         notes_data = generate_notes(request.text)
 
-        # 2. Get User
+        # 🚨 ENSURE THIS LINE IS DELETED OR COMMENTED OUT:
+        # data = json.loads(notes_data) 
+
+        # 2. Get User (for history)
         user = await get_current_user_optional(req)
 
-        # 3. Save History
         if user:
             background_tasks.add_task(
                 save_history,
                 user_id=str(user["_id"]),
                 action_type="make_notes",
-                input_data={"text": request.text[:200] + "..."}, # Save snippet of long text
+                input_data={"text": request.text[:200] + "..."}, 
                 result_data=notes_data
             )
 
+        # 3. Return notes_data DIRECTLY
         return {"notes_data": notes_data}
 
     except Exception as e:
