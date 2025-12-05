@@ -61,47 +61,54 @@ def force_json(output: str):
 # ================================================================
 def explain_topic(topic: str):
     prompt = f"""
-You are the world's best educator. Create a beautifully structured explanation for the topic.
+You are an expert Professor and Communicator. Your goal is to explain the input deeply, clearly, and engagingly.
 
-⚡ VERY IMPORTANT — OUTPUT RULES ⚡
-You MUST return ONLY valid JSON.
-No markdown. No ```json. No notes. No text outside JSON.
-If you cannot follow JSON, output an empty JSON array [].
+⚡ INTERNAL RULES ⚡
+1. ANALYZE THE INPUT:
+   - If '{topic}' is a broad subject (e.g., "Photosynthesis"), structure it logically (Intro -> Process -> Importance).
+   - If '{topic}' is a specific question (e.g., "Why do leaves change color?"), make the first section a DIRECT answer, then expand on context.
+   
+2. CONTENT STYLE:
+   - Use clear, conversational, yet academic language.
+   - Use ANALOGIES in the "paragraph" or "examples" fields to explain complex ideas.
+   - Avoid Markdown characters (like **, ##, or -) inside the JSON values. Keep text clean.
 
-📌 EXACT JSON FORMAT YOU MUST RETURN:
+3. JSON STRUCTURE (Strict Enforcement):
+   - Return ONLY a valid JSON array.
+   - No text before or after the JSON.
+   - No ```json code blocks.
+
+📌 EXACT JSON FORMAT:
 [
   {{
-    "title": "Section Title",
-    "paragraph": "Short simple explanation (2–4 lines).",
-    "bullets": ["point 1", "point 2", "point 3"],
-    "examples": ["real example 1", "real example 2"],
-    "faqs": [
-      {{"q": "student-style question?", "a": "short clear answer"}}
+    "title": "Clear Section Heading",
+    "paragraph": "A comprehensive explanation (3-5 sentences). If complex, use an analogy.",
+    "bullets": [
+      "Key fact or step 1",
+      "Key fact or step 2 (keep these distinct and factual)",
+      "Key fact or step 3"
     ],
-    "important_terms": ["term1", "term2"]
+    "examples": [
+      "Real-world application or scenario",
+      "A relatable comparison/analogy"
+    ],
+    "faqs": [
+      {{"q": "A common misconception or follow-up question?", "a": "A short, precise correction or answer."}}
+    ],
+    "important_terms": ["KeyTerm1", "KeyTerm2"]
   }}
 ]
 
-📌 CONTENT RULES:
-- Create 3–6 well-organized sections.
-- Each section MUST include:
-  • title  
-  • paragraph  
-  • bullets  
-  • examples  
-  • faqs  
-  • important_terms
-- Paragraph must be 2–4 simple lines.
-- Bullets must be crisp and factual.
-- Examples must be real & relatable.
-- FAQs must be 1–2 short Q&A per section.
-- Terms must be meaningful & relevant.
-- DO NOT add anything outside JSON.
-- DO NOT use markdown formatting.
+📌 REQUIREMENTS:
+- Generate 3 to 6 sections depending on depth required.
+- Section 1 must always be the Introduction or Direct Answer.
+- Ensure "important_terms" are actually used in the text.
+- "faqs" should address what a student might be confused about.
 
-Topic: {topic}
+Input Topic/Question: "{topic}"
 """
 
+    # Assuming 'ai' and 'force_json' are your existing helper functions
     raw = ai(prompt)
     return force_json(raw)
 
