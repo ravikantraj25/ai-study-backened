@@ -19,7 +19,7 @@ router = APIRouter()
 class ExplainRequest(BaseModel):
     topic: str
 
-class NotesRequest(BaseModel):
+class NoteRequest(BaseModel):
     text: str
 
 class MCQRequest(BaseModel):
