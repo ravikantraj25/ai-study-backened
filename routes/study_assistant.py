@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks, Request
 from pydantic import BaseModel
 from services.ai_service import (
     ai,
@@ -7,6 +7,8 @@ from services.ai_service import (
     explain_topic,
     answer_question,
 )
+from services.history_service import save_history  # <--- IMPORT THIS
+from auth_utils import get_current_user_optional   # <--- IMPORT THIS
 from db.mongo import notes_collection
 import json
 
@@ -39,28 +41,50 @@ class QnARequest(BaseModel):
 
 # 1️⃣ Explain topic
 @router.post("/explain")
-async def explain_topic_route(request: ExplainRequest):
+async def explain_topic_route(request: ExplainRequest, req: Request, background_tasks: BackgroundTasks):
     try:
+        # 1. Generate Explanation
         explanation = explain_topic(request.topic)
+        
+        # 2. Get User (Optional)
+        user = await get_current_user_optional(req)
+
+        # 3. Save History (if logged in)
+        if user:
+            background_tasks.add_task(
+                save_history,
+                user_id=str(user["_id"]),
+                action_type="explain",
+                input_data={"topic": request.topic},
+                result_data=explanation
+            )
+
         return {"explanation": explanation}
     except Exception as e:
         return {"error": f"Explain error: {str(e)}"}
 
 
-# 2️⃣ Make Notes — UPDATED FOR PREMIUM JSON
+# 2️⃣ Make Notes
 @router.post("/make-notes")
-async def make_notes(request: NoteRequest):
+async def make_notes(request: NoteRequest, req: Request, background_tasks: BackgroundTasks):
     try:
-        # 1. generate_notes NOW returns a Dictionary (thanks to force_json)
+        # 1. Generate Notes (Returns Dict)
         notes_data = generate_notes(request.text)
 
-        # 🚨 DELETE THIS LINE if you have it:
-        # data = json.loads(notes_data) 
+        # 2. Get User
+        user = await get_current_user_optional(req)
 
-        # 2. Use notes_data directly
-        return {
-            "notes_data": notes_data 
-        }
+        # 3. Save History
+        if user:
+            background_tasks.add_task(
+                save_history,
+                user_id=str(user["_id"]),
+                action_type="make_notes",
+                input_data={"text": request.text[:200] + "..."}, # Save snippet of long text
+                result_data=notes_data
+            )
+
+        return {"notes_data": notes_data}
 
     except Exception as e:
         return {"error": f"Notes error: {str(e)}"}
@@ -68,13 +92,28 @@ async def make_notes(request: NoteRequest):
 
 # 3️⃣ Make MCQs
 @router.post("/make-mcq")
-async def make_mcq(request: MCQRequest):
+async def make_mcq(request: MCQRequest, req: Request, background_tasks: BackgroundTasks):
     try:
+        # 1. Generate MCQs
         prompt = (
             f"Create 5 MCQs from the following text. "
             f"Each MCQ must have 4 options and the correct answer:\n\n{request.text}"
         )
         mcqs = ai(prompt)
+
+        # 2. Get User
+        user = await get_current_user_optional(req)
+
+        # 3. Save History
+        if user:
+            background_tasks.add_task(
+                save_history,
+                user_id=str(user["_id"]),
+                action_type="make_mcq",
+                input_data={"text": request.text[:200] + "..."},
+                result_data=mcqs 
+            )
+
         return {"mcqs": mcqs}
     except Exception as e:
         return {"error": f"MCQ error: {str(e)}"}
@@ -82,26 +121,50 @@ async def make_mcq(request: MCQRequest):
 
 # 4️⃣ Summarize text
 @router.post("/summarize-text")
-async def summarize_any_text(request: SummarizeTextRequest):
+async def summarize_any_text(request: SummarizeTextRequest, req: Request, background_tasks: BackgroundTasks):
     try:
+        # 1. Generate Summary
         summary = summarize_text(request.text)
+
+        # 2. Get User
+        user = await get_current_user_optional(req)
+
+        # 3. Save History
+        if user:
+            background_tasks.add_task(
+                save_history,
+                user_id=str(user["_id"]),
+                action_type="summarize",
+                input_data={"text": request.text[:200] + "..."},
+                result_data=summary
+            )
+
         return {"summary": summary}
     except Exception as e:
         return {"error": f"Summary error: {str(e)}"}
 
 
-# 5️⃣ PDF QnA
-@router.post("/qna")  # Note: Ensure this matches your frontend fetch URL (e.g., /ask or /qna)
-async def qna(request: QnARequest):
+# 5️⃣ PDF QnA / Ask Question
+@router.post("/qna") 
+async def qna(request: QnARequest, req: Request, background_tasks: BackgroundTasks):
     try:
-        # 1. Get the structured dictionary from the AI service
+        # 1. Generate Answer
         answer_data = answer_question(request.text, request.question)
         
-        # 2. Return it wrapped in a key that matches your frontend logic
-        return {
-            "answer_data": answer_data 
-        }
+        # 2. Get User
+        user = await get_current_user_optional(req)
+
+        # 3. Save History
+        if user:
+            background_tasks.add_task(
+                save_history,
+                user_id=str(user["_id"]),
+                action_type="qna",
+                input_data={"question": request.question, "text": request.text[:100] + "..."},
+                result_data=answer_data
+            )
+
+        return {"answer_data": answer_data}
 
     except Exception as e:
         return {"error": f"QnA error: {str(e)}"}
-
