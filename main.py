@@ -13,6 +13,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from routes.auth import router as auth_router
 from routes.history import router as history_router
+from routers import make_mcq
 
 
 # ------------------------------------------------------------
@@ -63,6 +64,8 @@ app.include_router(summarize_router)
 app.include_router(study_router)
 app.include_router(auth_router)
 app.include_router(history_router)
+app.include_router(make_mcq.router)
+
 
 
 # ------------------------------------------------------------
