@@ -62,14 +62,37 @@ async def make_notes(request: NotesRequest):
 @router.post("/make-mcq")
 async def make_mcq(request: MCQRequest):
     try:
-        prompt = (
-            f"Create 5 MCQs from the following text. "
-            f"Each MCQ must have 4 options and the correct answer:\n\n{request.text}"
-        )
-        mcqs = ai(prompt)
+        prompt = f"""
+        Generate {request.count} MCQs from the following text.
+        Return output strictly in this JSON format:
+
+        [
+          {{
+            "question": "question text",
+            "options": ["A", "B", "C", "D"],
+            "answer": "correct option text"
+          }}
+        ]
+
+        Text:
+        {request.text}
+        """
+
+        result = ai(prompt)
+
+        # clean + parse JSON safely
+        import json
+        try:
+            mcqs = json.loads(result)
+        except:
+            # fallback: wrap inside array or fix formatting
+            mcqs = [{"raw": result}]
+
         return {"mcqs": mcqs}
+
     except Exception as e:
         return {"error": f"MCQ error: {str(e)}"}
+
 
 
 # 4️⃣ Summarize text
