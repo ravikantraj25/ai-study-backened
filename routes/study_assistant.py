@@ -6,9 +6,10 @@ from services.ai_service import (
     generate_notes,
     explain_topic,
     answer_question,
+    generate_mindmap  # <--- Ensure this is imported
 )
-from services.history_service import save_history  # <--- IMPORT THIS
-from auth_utils import get_current_user_optional   # <--- IMPORT THIS
+from services.history_service import save_history
+from auth_utils import get_current_user_optional
 from db.mongo import notes_collection
 import json
 
@@ -34,6 +35,8 @@ class QnARequest(BaseModel):
     text: str
     question: str
 
+class MindMapRequest(BaseModel):
+    text: str
 
 # ----------------------------
 # 📌 ROUTES
@@ -168,3 +171,27 @@ async def qna(request: QnARequest, req: Request, background_tasks: BackgroundTas
 
     except Exception as e:
         return {"error": f"QnA error: {str(e)}"}
+
+
+# 6️⃣ AI Mind Map (Corrected Indentation)
+@router.post("/make-mindmap")
+async def make_mindmap_route(request: MindMapRequest, req: Request, background_tasks: BackgroundTasks):
+    try:
+        # 1. Generate Code
+        mermaid_code = generate_mindmap(request.text)
+
+        # 2. Get User & Save History
+        user = await get_current_user_optional(req)
+        
+        if user:
+            background_tasks.add_task(
+                save_history,
+                user_id=str(user["_id"]),
+                action_type="mindmap",
+                input_data={"text": request.text[:100] + "..."},
+                result_data={"code": mermaid_code}
+            )
+
+        return {"mermaid_code": mermaid_code}
+    except Exception as e:
+        return {"error": f"MindMap error: {str(e)}"}

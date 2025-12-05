@@ -245,3 +245,31 @@ USER QUESTION:
     # Assuming 'ai' and 'force_json' are your existing helpers
     raw = ai(prompt)
     return force_json(raw)
+
+
+def generate_mindmap(text: str):
+    prompt = f"""
+    You are an expert Visual Learning Assistant.
+    Convert the following text into a **Mermaid.js** flowchart syntax (`graph TD`).
+
+    ⚡ RULES:
+    1. Start strictly with `graph TD`.
+    2. Use square brackets `[ ]` for main ideas and parenthesis `( )` for details.
+    3. Keep node text **VERY SHORT** (max 3-5 words). Long text breaks the diagram.
+    4. Ensure meaningful connections (A --> B).
+    5. **CRITICAL:** Output ONLY the code. Do NOT wrap in markdown (```mermaid). Do NOT add explanations.
+
+    Example Output:
+    graph TD
+    A[Photosynthesis] --> B(Light Energy)
+    A --> C(Water & CO2)
+    B --> D[Glucose produced]
+
+    INPUT TEXT:
+    {text}
+    """
+    raw = ai(prompt)
+    
+    # Cleaning: Remove markdown wrappers if the AI adds them by mistake
+    clean_code = raw.replace("```mermaid", "").replace("```", "").strip()
+    return clean_code
