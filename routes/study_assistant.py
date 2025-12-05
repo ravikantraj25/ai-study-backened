@@ -6,7 +6,8 @@ from services.ai_service import (
     generate_notes,
     explain_topic,
     answer_question,
-    generate_mindmap  # <--- Ensure this is imported
+    generate_mindmap,  # <--- Ensure this is imported
+    generate_flashcards
 )
 from services.history_service import save_history
 from auth_utils import get_current_user_optional
@@ -38,6 +39,8 @@ class QnARequest(BaseModel):
 class MindMapRequest(BaseModel):
     text: str
 
+class FlashcardRequest(BaseModel):
+    text: str
 # ----------------------------
 # 📌 ROUTES
 # ----------------------------
@@ -198,3 +201,25 @@ async def make_mindmap_route(request: MindMapRequest, req: Request, background_t
         return {"mermaid_code": mermaid_code}
     except Exception as e:
         return {"error": f"MindMap error: {str(e)}"}
+    
+# 7️⃣ Generate Flashcards
+@router.post("/make-flashcards")
+async def make_flashcards_route(request: FlashcardRequest, req: Request, background_tasks: BackgroundTasks):
+    try:
+        # Generate
+        cards = generate_flashcards(request.text)
+
+        # Save History
+        user = await get_current_user_optional(req)
+        if user:
+            background_tasks.add_task(
+                save_history,
+                user_id=str(user["_id"]),
+                action_type="flashcards",
+                input_data={"text": request.text[:100] + "..."},
+                result_data=cards
+            )
+
+        return {"flashcards": cards}
+    except Exception as e:
+        return {"error": f"Flashcard error: {str(e)}"}

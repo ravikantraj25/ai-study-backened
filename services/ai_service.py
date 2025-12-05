@@ -273,3 +273,22 @@ def generate_mindmap(text: str):
     # Cleaning: Remove markdown wrappers if the AI adds them by mistake
     clean_code = raw.replace("```mermaid", "").replace("```", "").strip()
     return clean_code
+
+
+def generate_flashcards(text: str):
+    prompt = f"""
+    You are an expert Exam Prep Tutor.
+    Create 6 to 8 high-quality Flashcards based on the provided text.
+    
+    ⚡ RULES:
+    1. Output strictly a JSON Array.
+    2. Format: [{{"front": "Question or Term", "back": "Answer or Definition"}}]
+    3. Keep the "front" short (max 10 words).
+    4. Keep the "back" concise (max 20 words).
+    5. No markdown formatting (no ```json).
+
+    INPUT TEXT:
+    {text}
+    """
+    raw = ai(prompt)
+    return force_json(raw)
