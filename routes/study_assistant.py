@@ -105,11 +105,3 @@ async def qna(request: QnARequest):
     except Exception as e:
         return {"error": f"QnA error: {str(e)}"}
 
-
-# 6️⃣ Fetch saved notes
-@router.get("/notes")
-def get_notes():
-    notes = list(notes_collection.find().sort("_id", -1))
-    for n in notes:
-        n["_id"] = str(n["_id"])
-    return notes

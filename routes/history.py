@@ -1,24 +1,27 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
 from db.mongo import history_collection
-from auth_utils import get_user_from_token
+from auth_utils import get_current_user_optional # or your specific auth function
+from bson import ObjectId
 
-router = APIRouter(prefix="/history", tags=["history"])
+router = APIRouter()
 
-@router.get("")
-def get_history(request: Request):
-    auth = request.headers.get("authorization")
-    if not auth:
-        raise HTTPException(status_code=401, detail="Not logged in")
-
-    token = auth.split()[1]
-    user = get_user_from_token(token)
+@router.get("/history")
+async def get_user_history(request: Request):
+    # 1. Get User from Token
+    user = await get_current_user_optional(request)
+    
     if not user:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Please login to view history")
 
-    items = list(history_collection.find({"user_id": str(user["_id"])}).sort("created_at", -1))
+    user_id = str(user.get("_id") or user.get("id"))
 
+    # 2. Fetch History for THIS user only
+    items = list(history_collection.find({"user_id": user_id}).sort("created_at", -1))
+
+    # 3. Clean up ObjectId for JSON response
     for i in items:
         i["_id"] = str(i["_id"])
-        i["created_at"] = i["created_at"].isoformat()
+        if "created_at" in i:
+            i["created_at"] = i["created_at"].isoformat()
 
     return {"history": items}

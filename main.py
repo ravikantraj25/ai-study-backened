@@ -63,7 +63,7 @@ app.add_middleware(LimitUploadSizeMiddleware)
 app.include_router(summarize_router)
 app.include_router(study_router)
 app.include_router(auth_router)
-app.include_router(history_router)
+app.include_router(history_router, tags=["History"])
 app.include_router(make_mcq.router)
 
 
