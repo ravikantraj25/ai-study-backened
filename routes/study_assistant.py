@@ -49,11 +49,19 @@ async def explain_topic_route(request: ExplainRequest):
 
 # 2️⃣ Make Notes — UPDATED FOR PREMIUM JSON
 @router.post("/make-notes")
-async def make_notes(request: NotesRequest):
+async def make_notes(request: NoteRequest):
     try:
-        raw = generate_notes(request.text)      # AI returns JSON string
-        data = json.loads(raw)                  # Convert string → dict
-        return data                             
+        # 1. generate_notes NOW returns a Dictionary (thanks to force_json)
+        notes_data = generate_notes(request.text)
+
+        # 🚨 DELETE THIS LINE if you have it:
+        # data = json.loads(notes_data) 
+
+        # 2. Use notes_data directly
+        return {
+            "notes_data": notes_data 
+        }
+
     except Exception as e:
         return {"error": f"Notes error: {str(e)}"}
 
