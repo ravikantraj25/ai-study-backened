@@ -119,20 +119,47 @@ Input Topic/Question: "{topic}"
 # ================================================================
 def summarize_text(text: str):
     prompt = f"""
-Summarize the text into a clean, structured study format.
+You are an expert Document Analyst. Your goal is to create a structured, visually appealing summary of the provided text.
 
-Rules:
-- Use headings based ONLY on real content.
-- Use short, meaningful bullet points.
-- Keep everything exam-friendly.
-- No invented content.
-- No fluff.
+⚡ ANALYZE THE DOCUMENT TYPE FIRST:
+1. If it is a **RESUME/CV**: Focus on "Candidate Profile", "Top Skills", "Experience Highlights".
+2. If it is **STUDY MATERIAL**: Focus on "Core Concepts", "Definitions", "Exam Key Points".
+3. If it is **GENERAL**: Focus on "Executive Summary", "Key Details".
 
-Text:
+⚡ OUTPUT FORMAT (STRICT JSON):
+You must return a valid JSON object. No Markdown. No text outside JSON.
+{{
+  "document_type": "Resume" | "Academic" | "General",
+  "emoji": "📄",
+  "title": "A short, catchy title for this document",
+  "overview": "A 2-3 sentence high-level summary of the entire content.",
+  "quick_stats": [
+    {{"label": "e.g., Experience", "value": "4 Years"}},
+    {{"label": "e.g., Key Topic", "value": "Photosynthesis"}} 
+    // (Generate 2-4 relevant stats based on content)
+  ],
+  "sections": [
+    {{
+      "heading": "Section Title (e.g., Professional Experience or Light Reaction)",
+      "content": "Brief summary of this section.",
+      "bullets": ["Key detail 1", "Key detail 2", "Key detail 3"]
+    }}
+  ],
+  "key_takeaways": ["Insight 1", "Insight 2", "Insight 3"]
+}}
+
+⚡ RULES:
+- **Clean Text:** Do not use markdown (**, ##) inside strings.
+- **Brevity:** Keep bullets crisp.
+- **Relevance:** Only include information present in the text.
+
+Input Text:
 {text}
 """
 
-    return ai(prompt)
+    # Assuming you have the 'ai' and 'force_json' helpers from before
+    raw = ai(prompt)
+    return force_json(raw)
 
 
 # ================================================================
