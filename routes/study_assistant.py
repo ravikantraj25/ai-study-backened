@@ -91,11 +91,17 @@ async def summarize_any_text(request: SummarizeTextRequest):
 
 
 # 5️⃣ PDF QnA
-@router.post("/qna")
+@router.post("/qna")  # Note: Ensure this matches your frontend fetch URL (e.g., /ask or /qna)
 async def qna(request: QnARequest):
     try:
-        answer = answer_question(request.text, request.question)
-        return {"answer": answer}
+        # 1. Get the structured dictionary from the AI service
+        answer_data = answer_question(request.text, request.question)
+        
+        # 2. Return it wrapped in a key that matches your frontend logic
+        return {
+            "answer_data": answer_data 
+        }
+
     except Exception as e:
         return {"error": f"QnA error: {str(e)}"}
 

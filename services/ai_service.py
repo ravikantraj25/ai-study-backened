@@ -213,19 +213,35 @@ Input Text:
 # ================================================================
 def answer_question(text: str, question: str):
     prompt = f"""
-Answer the question **ONLY using the provided text**.
+You are an intelligent Exam Tutor. Answer the user's question based STRICTLY on the provided context text.
 
-Rules:
-- If not found, reply EXACTLY:
-  "Information not available in the provided text."
-- Keep explanation short.
-- Highlight key terms in **bold**.
-- Use bullet points if helpful.
+⚡ RULES:
+1. **Direct Answer:** Provide a clear, concise answer (2-4 sentences).
+2. **Evidence:** Extract the exact sentence/phrase from the text that supports your answer (for credibility).
+3. **Formatting:** Use **bold** for key terms.
+4. **Follow-up:** Suggest 3 smart follow-up questions the user might ask next.
+5. **No Hallucinations:** If the answer is NOT in the text, return "success": false.
 
-TEXT:
+⚡ OUTPUT FORMAT (JSON ONLY):
+{{
+  "success": true,
+  "answer": "The direct answer with **bold** keywords.",
+  "evidence": "The exact quote from the text used to derive the answer.",
+  "follow_ups": ["Question 1?", "Question 2?", "Question 3?"]
+}}
+
+OR (if answer not found):
+{{
+  "success": false,
+  "answer": "I could not find the answer to that specific question in the provided text."
+}}
+
+CONTEXT TEXT:
 {text}
 
-QUESTION:
+USER QUESTION:
 {question}
 """
-    return ai(prompt)
+    # Assuming 'ai' and 'force_json' are your existing helpers
+    raw = ai(prompt)
+    return force_json(raw)
