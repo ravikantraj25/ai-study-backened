@@ -13,7 +13,7 @@ from starlette.requests import Request
 from starlette.responses import Response
 from routes.auth import router as auth_router
 from routes.history import router as history_router
-from routers import make_mcq
+from routes import make_mcq
 
 
 # ------------------------------------------------------------
