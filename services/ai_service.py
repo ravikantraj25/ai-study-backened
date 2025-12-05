@@ -167,45 +167,44 @@ Input Text:
 # ================================================================
 def generate_notes(text: str):
     prompt = f"""
-You are an expert academic note-maker. Convert the given content into exceptionally clean,
-professionally structured bullet notes.
+You are an expert Academic Tutor using the Cornell Note-Taking method.
+Analyze the provided text and organize it into a structured, exam-ready study guide.
 
-💎 OUTPUT FORMAT (STRICT):
-Return ONLY valid JSON in the following structure:
+⚡ ANALYSIS RULES:
+1. Identify the Main Topic and create a catchy Title.
+2. Break the content into logical SECTIONS (e.g., "Introduction", "Process", "Key Factors").
+3. Extract the most important facts as crisp, high-value BULLET POINTS.
+4. Use **bold** markdown for key terms or definitions within the bullets.
 
+⚡ JSON OUTPUT FORMAT (Strict):
+Return ONLY a valid JSON object. No markdown blocks.
 {{
-  "success": true,
-  "style": "premium_bullet_notes",
-  "notes": [
-      "bullet 1",
-      "bullet 2",
-      "bullet 3"
+  "title": "Main Subject of the Text",
+  "summary": "A 1-sentence high-level overview.",
+  "sections": [
+    {{
+      "heading": "Section Title (e.g. Core Principles)",
+      "points": [
+        "First key point with **important term** highlighted.",
+        "Second key point regarding the specific detail.",
+        "Third key point with a fact or number."
+      ]
+    }}
   ]
 }}
 
-💎 OUTPUT RULES:
-- Do NOT include hyphens, numbers, bullets, emojis, or special symbols inside note items.
-- Do NOT return paragraphs.
-- Do NOT write long sentences.
-- Do NOT add extra or invented information.
-- Do NOT repeat ideas.
-- Merge related ideas into one clean bullet.
-- Keep language simple and exam-friendly.
-- Every bullet must be crisp, premium, and high-quality.
+⚡ CONTENT GUIDELINES:
+- **No Fluff:** Remove filler words. Keep bullets direct and factual.
+- **Hierarchy:** Group related ideas under the correct Heading.
+- **Clarity:** Ensure even a beginner can understand the notes.
+- **Accuracy:** Do not invent information.
 
-🎨 STYLE:
-- Modern
-- Minimal
-- Elegant
-- Highly readable
-- World-class academic formatting
-
-📘 INPUT TEXT:
+Input Text:
 {text}
-
-Now generate the JSON output exactly in the above structure.
 """
-    return ai(prompt)
+    # Assuming 'ai' and 'force_json' are your helpers
+    raw = ai(prompt)
+    return force_json(raw)
 
 
 
