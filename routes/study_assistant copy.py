@@ -61,50 +61,32 @@ async def make_notes(request: NotesRequest):
 # 3️⃣ Make MCQs
 @router.post("/make-mcq")
 async def make_mcq(request: MCQRequest):
-    import json
-
     try:
-        prompt = f"""
-        Generate {request.count} MCQs from the following text.
+        prompt = (
+            "Create 5 MCQs from the following text.\n"
+            "Return ONLY valid JSON in this exact format:\n\n"
+            "{\n"
+            "  \"mcqs\": [\n"
+            "    {\n"
+            "      \"question\": \"...\",\n"
+            "      \"options\": [\"A...\", \"B...\", \"C...\", \"D...\"],\n"
+            "      \"answer\": \"B\"\n"
+            "    }\n"
+            "  ]\n"
+            "}\n\n"
+            f"Text:\n{request.text}"
+        )
 
-        STRICT FORMAT:
-        Return a JSON array ONLY, like this:
+        ai_response = ai(prompt)
 
-        [
-          {{
-            "question": "What is ...?",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "answer": "Option B"
-          }}
-        ]
+        import json
+        # Ensure the AI response parses as JSON
+        data = json.loads(ai_response)
 
-        Do NOT add explanation, text, headings, numbering, or anything else.
-        Only return JSON.
-
-        TEXT:
-        {request.text}
-        """
-
-        ai_response = ai(prompt).strip()
-
-        # Attempt to parse JSON
-        try:
-            mcqs = json.loads(ai_response)
-
-        except json.JSONDecodeError:
-            # 🛑 If AI adds extra text, remove it
-            import re
-            json_match = re.search(r"\[.*\]", ai_response, re.DOTALL)
-            if json_match:
-                cleaned = json_match.group(0)
-                mcqs = json.loads(cleaned)
-            else:
-                return {"error": "AI did not return valid MCQ JSON", "raw": ai_response}
-
-        return {"mcqs": mcqs}
-
+        return data
     except Exception as e:
         return {"error": f"MCQ error: {str(e)}"}
+
 
 
 
