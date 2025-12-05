@@ -58,37 +58,6 @@ async def make_notes(request: NotesRequest):
         return {"error": f"Notes error: {str(e)}"}
 
 
-# 3️⃣ Make MCQs
-@router.post("/make-mcq")
-async def make_mcq(request: MCQRequest):
-    try:
-        prompt = (
-            "Create 5 MCQs from the following text.\n"
-            "Return ONLY valid JSON in this exact format:\n\n"
-            "{\n"
-            "  \"mcqs\": [\n"
-            "    {\n"
-            "      \"question\": \"...\",\n"
-            "      \"options\": [\"A...\", \"B...\", \"C...\", \"D...\"],\n"
-            "      \"answer\": \"B\"\n"
-            "    }\n"
-            "  ]\n"
-            "}\n\n"
-            f"Text:\n{request.text}"
-        )
-
-        ai_response = ai(prompt)
-
-        import json
-        # Ensure the AI response parses as JSON
-        data = json.loads(ai_response)
-
-        return data
-    except Exception as e:
-        return {"error": f"MCQ error: {str(e)}"}
-
-
-
 
 # 4️⃣ Summarize text
 @router.post("/summarize-text")
