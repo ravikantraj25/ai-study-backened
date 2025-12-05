@@ -61,32 +61,45 @@ async def make_notes(request: NotesRequest):
 # 3️⃣ Make MCQs
 @router.post("/make-mcq")
 async def make_mcq(request: MCQRequest):
+    import json
+
     try:
         prompt = f"""
         Generate {request.count} MCQs from the following text.
-        Return output strictly in this JSON format:
+
+        STRICT FORMAT:
+        Return a JSON array ONLY, like this:
 
         [
           {{
-            "question": "question text",
-            "options": ["A", "B", "C", "D"],
-            "answer": "correct option text"
+            "question": "What is ...?",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "answer": "Option B"
           }}
         ]
 
-        Text:
+        Do NOT add explanation, text, headings, numbering, or anything else.
+        Only return JSON.
+
+        TEXT:
         {request.text}
         """
 
-        result = ai(prompt)
+        ai_response = ai(prompt).strip()
 
-        # clean + parse JSON safely
-        import json
+        # Attempt to parse JSON
         try:
-            mcqs = json.loads(result)
-        except:
-            # fallback: wrap inside array or fix formatting
-            mcqs = [{"raw": result}]
+            mcqs = json.loads(ai_response)
+
+        except json.JSONDecodeError:
+            # 🛑 If AI adds extra text, remove it
+            import re
+            json_match = re.search(r"\[.*\]", ai_response, re.DOTALL)
+            if json_match:
+                cleaned = json_match.group(0)
+                mcqs = json.loads(cleaned)
+            else:
+                return {"error": "AI did not return valid MCQ JSON", "raw": ai_response}
 
         return {"mcqs": mcqs}
 
