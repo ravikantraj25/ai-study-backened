@@ -1,80 +1,97 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel
-import json
-from ai_model import ai   # <-- your AI wrapper
+from routes.study_assistant import ai   # <-- Use your existing AI wrapper
 
 router = APIRouter()
 
-# ---- Request Schema ----
+
+# -----------------------------
+# Request Model
+# -----------------------------
 class MCQRequest(BaseModel):
     text: str
     count: int = 5
 
 
-# ---- MCQ Route ----
+# -----------------------------
+# Convert AI raw text into structured MCQs
+# -----------------------------
+def parse_mcq_output(raw_text: str):
+    """
+    Converts AI text into structured MCQ objects.
+    Expected AI output example:
+
+    1. Question text
+    A) Option 1
+    B) Option 2
+    C) Option 3
+    D) Option 4
+    Correct answer: B) Option 2
+    """
+
+    mcqs = []
+    blocks = raw_text.strip().split("\n\n")
+
+    current = {"question": "", "options": [], "answer": ""}
+
+    for block in blocks:
+        lines = block.strip().split("\n")
+
+        # New MCQ question
+        if lines[0].lstrip()[0].isdigit():  
+            if current["question"]:
+                mcqs.append(current)
+            current = {"question": "", "options": [], "answer": ""}
+
+            # Remove numbering like "1. " or "2)"
+            q_text = lines[0].split(".", 1)[-1].strip()
+            current["question"] = q_text
+
+        # Options A,B,C,D
+        for line in lines:
+            if line.startswith(("A)", "B)", "C)", "D)")):
+                current["options"].append(line[3:].strip())  # Keep only text
+
+            # Correct answer
+            if "Correct answer" in line:
+                ans = line.split(":", 1)[1].strip()
+                # Remove A), B)
+                if ")" in ans:
+                    ans = ans.split(")", 1)[1].strip()
+                current["answer"] = ans
+
+    if current["question"]:
+        mcqs.append(current)
+
+    return mcqs
+
+
+# -----------------------------
+# API Endpoint
+# -----------------------------
 @router.post("/make-mcq")
 async def make_mcq(request: MCQRequest):
-    """
-    Returns clean JSON MCQs usable directly by frontend.
-    """
-
     try:
-        # ---- AI Prompt ----
         prompt = f"""
-Generate {request.count} MCQs from the following text.
+Create {request.count} MCQs from the following text.
+Each MCQ must follow this format strictly:
 
-Each MCQ MUST follow this JSON format:
-
-[
-  {{
-    "question": "Question text",
-    "options": ["Option A", "Option B", "Option C", "Option D"],
-    "answer": "Correct option text"
-  }}
-]
-
-Rules:
-- Return ONLY valid JSON.
-- Do NOT include explanations.
-- Do NOT include markdown like ```json.
+1. The question text
+A) Option 1
+B) Option 2
+C) Option 3
+D) Option 4
+Correct answer: B) Option 2
 
 Text:
 {request.text}
-"""
+        """
 
-        ai_response = ai(prompt).strip()
+        raw_output = ai(prompt)
 
-        # ---- Clean AI Output (remove unwanted formatting) ----
-        cleaned = (
-            ai_response.replace("```json", "")
-                       .replace("```", "")
-                       .strip()
-        )
+        parsed = parse_mcq_output(raw_output)
 
-        # ---- Parse JSON ----
-        try:
-            mcqs = json.loads(cleaned)
-        except Exception as parse_error:
-            raise HTTPException(
-                status_code=500,
-                detail=f"JSON parsing failed. Raw AI output: {cleaned}"
-            )
-
-        # ---- Validate JSON ----
-        if not isinstance(mcqs, list):
-            raise HTTPException(
-                status_code=500,
-                detail="MCQ output must be a list."
-            )
-
-        for q in mcqs:
-            if not all(k in q for k in ("question", "options", "answer")):
-                raise HTTPException(
-                    status_code=500,
-                    detail="Each MCQ must contain question, options, answer."
-                )
-
-        return {"mcqs": mcqs}
+        return {"mcqs": parsed}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"MCQ error: {str(e)}")
+        return {"error": f"MCQ error: {str(e)}"}
