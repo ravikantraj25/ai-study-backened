@@ -28,7 +28,7 @@ class NoteRequest(BaseModel):
 
 class MCQRequest(BaseModel):
     text: str
-
+    num_questions: int = 5
 class SummarizeTextRequest(BaseModel):
     text: str
 
@@ -103,27 +103,69 @@ async def make_notes(request: NoteRequest, req: Request, background_tasks: Backg
 @router.post("/make-mcq")
 async def make_mcq(request: MCQRequest, req: Request, background_tasks: BackgroundTasks):
     try:
-        # 1. Generate MCQs
-        prompt = (
-            f"Create 5 MCQs from the following text. "
-            f"Each MCQ must have 4 options and the correct answer:\n\n{request.text}"
-        )
-        mcqs = ai(prompt)
+        # 1. Validation: Limit the number to avoid timeout/token errors
+        # (e.g., max 20 questions at a time)
+        count = max(1, min(request.num_questions, 20))
 
-        # 2. Get User
+        # 2. The Professional Prompt
+        prompt = (
+            f"You are a strict educational API that outputs only raw JSON.\n"
+            f"Task: Create exactly {count} professional multiple-choice questions "
+            f"based on the text provided below.\n\n"
+            
+            f"Constraints:\n"
+            f"1. Output MUST be a valid JSON array.\n"
+            f"2. Do NOT write 'Here are the questions' or any introductory text.\n"
+            f"3. Do NOT use Markdown formatting (no ```json code blocks).\n"
+            f"4. Each question must have 4 distinct options.\n"
+            f"5. The 'correctAnswer' must match one of the options exactly.\n\n"
+            
+            f"Required JSON Structure:\n"
+            f"[\n"
+            f"  {{\n"
+            f"    \"question\": \"Question text...\",\n"
+            f"    \"options\": [\"Option A\", \"Option B\", \"Option C\", \"Option D\"],\n"
+            f"    \"correctAnswer\": \"Option A\",\n"
+            f"    \"explanation\": \"Brief explanation of why this is correct.\"\n"
+            f"  }}\n"
+            f"]\n\n"
+            
+            f"Text to process:\n"
+            f"\"\"\"{request.text}\"\"\""
+        )
+
+        # 3. Call your AI function
+        raw_response = ai(prompt)
+        
+        # 4. Cleaning Step (Safety Net)
+        # Note: We use the 'json' imported at the top of the file
+        try:
+            # Find the first '[' and last ']' to ignore any extra text
+            start_index = raw_response.find('[')
+            end_index = raw_response.rfind(']') + 1
+            
+            if start_index != -1 and end_index != -1:
+                clean_json = raw_response[start_index:end_index]
+                mcqs = json.loads(clean_json)
+            else:
+                mcqs = [] # Fallback if AI fails completely
+        except json.JSONDecodeError:
+            return {"error": "Failed to parse AI response into JSON."}
+
+        # 5. Get User & Save History (Added this back for you!)
         user = await get_current_user_optional(req)
 
-        # 3. Save History
         if user:
             background_tasks.add_task(
                 save_history,
                 user_id=str(user["_id"]),
                 action_type="make_mcq",
                 input_data={"text": request.text[:200] + "..."},
-                result_data=mcqs 
+                result_data=mcqs
             )
-
+        
         return {"mcqs": mcqs}
+
     except Exception as e:
         return {"error": f"MCQ error: {str(e)}"}
 
