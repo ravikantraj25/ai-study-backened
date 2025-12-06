@@ -1,24 +1,30 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from db.mongo import history_collection
-from security import get_current_user  # ✅ Use the new Security file
-# We don't need 'Request' or 'ObjectId' for the query logic anymore
+# 👇 CHANGE THIS: Import from auth_utils, not security
+from auth_utils import get_current_user_optional 
 
 router = APIRouter()
 
-@router.get("/history")
-def get_user_history(user_id: str = Depends(get_current_user)): 
-    # 1. Auth: user_id is now injected directly by Clerk/Security
-    # It will look like "user_2xyz..."
+@router.get("/get")
+async def get_user_history(req: Request):
+    """
+    Fetch the history for the logged-in user.
+    """
+    # 1. Get the current user
+    user = await get_current_user_optional(req)
+
+    # 2. Security Check: If not logged in, reject access
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    # 3. Fetch history from MongoDB
+    # We sort by 'created_at' descending (newest first) and limit to 50
+    cursor = history_collection.find({"user_id": user["_id"]}).sort("created_at", -1).limit(50)
     
-    # 2. Fetch History using the Clerk ID
-    # Note: We use 'def' instead of 'async def' because PyMongo is synchronous. 
-    # FastAPI handles this better in a thread pool.
-    items = list(history_collection.find({"user_id": user_id}).sort("created_at", -1))
+    history_list = []
+    for doc in cursor:
+        # Convert ObjectId to string for JSON compatibility
+        doc["_id"] = str(doc["_id"])
+        history_list.append(doc)
 
-    # 3. Clean up ObjectId for JSON response
-    for i in items:
-        i["_id"] = str(i["_id"])
-        if "created_at" in i:
-            i["created_at"] = i["created_at"].isoformat()
-
-    return {"history": items}
+    return {"history": history_list}
