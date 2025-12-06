@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Initialize Client
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 
@@ -17,25 +18,37 @@ client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 #  UNIVERSAL AI CALLER (Stable)
 # ================================================================
 def ai(prompt: str):
-    response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.2,
-    )
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"Groq API Error: {e}")
+        return "Error generating content."
 
 
 # ================================================================
-#  SAFE JSON PARSER — FIXES AI OUTPUT
+#  SAFE JSON PARSER — FIXED (Handles both {} and [])
 # ================================================================
 def force_json(output: str):
-    # Try direct JSON
+    # 1. Try direct JSON parsing (cleanest)
     try:
         return json.loads(output)
     except:
         pass
 
-    # Try extracting inside [...]
+    # 2. Try extracting JSON Object {...}
+    try:
+        match = re.search(r"\{.*\}", output, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+    except:
+        pass
+
+    # 3. Try extracting JSON Array [...]
     try:
         match = re.search(r"\[.*\]", output, re.DOTALL)
         if match:
@@ -43,17 +56,15 @@ def force_json(output: str):
     except:
         pass
 
-    # Final fallback: wrap as single section
-    return [
-        {
-            "title": "Explanation",
-            "paragraph": output,
-            "bullets": [],
-            "examples": [],
-            "faqs": [],
-            "important_terms": []
-        }
-    ]
+    # 4. Final fallback: Wrap as single explanation section
+    # This prevents the app from crashing if AI fails completely
+    return {
+        "title": "AI Error",
+        "summary": "Could not parse AI response.",
+        "sections": [],
+        "error": True,
+        "raw_output": output
+    }
 
 
 # ================================================================
@@ -107,11 +118,8 @@ You are an expert Professor and Communicator. Your goal is to explain the input 
 
 Input Topic/Question: "{topic}"
 """
-
-    # Assuming 'ai' and 'force_json' are your existing helper functions
     raw = ai(prompt)
     return force_json(raw)
-
 
 
 # ================================================================
@@ -156,8 +164,6 @@ You must return a valid JSON object. No Markdown. No text outside JSON.
 Input Text:
 {text}
 """
-
-    # Assuming you have the 'ai' and 'force_json' helpers from before
     raw = ai(prompt)
     return force_json(raw)
 
@@ -202,10 +208,8 @@ Return ONLY a valid JSON object. No markdown blocks.
 Input Text:
 {text}
 """
-    # Assuming 'ai' and 'force_json' are your helpers
     raw = ai(prompt)
     return force_json(raw)
-
 
 
 # ================================================================
@@ -242,11 +246,13 @@ CONTEXT TEXT:
 USER QUESTION:
 {question}
 """
-    # Assuming 'ai' and 'force_json' are your existing helpers
     raw = ai(prompt)
     return force_json(raw)
 
 
+# ================================================================
+#  MIND MAP (MERMAID JS)
+# ================================================================
 def generate_mindmap(text: str):
     prompt = f"""
     You are an expert Visual Learning Assistant.
@@ -275,6 +281,9 @@ def generate_mindmap(text: str):
     return clean_code
 
 
+# ================================================================
+#  FLASHCARDS GENERATOR
+# ================================================================
 def generate_flashcards(text: str):
     prompt = f"""
     You are an expert Exam Prep Tutor.

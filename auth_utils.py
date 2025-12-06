@@ -1,71 +1,55 @@
-# backend/auth_utils.py
 import os
-from datetime import datetime, timedelta
-from typing import Optional
-from fastapi import HTTPException, Request
-from passlib.context import CryptContext
 import jwt
-from db.mongo import users_collection
-from bson import ObjectId
+from fastapi import Request, HTTPException
+from dotenv import load_dotenv
 
-JWT_SECRET = os.getenv("JWT_SECRET", "super-secret-change-me")
-JWT_ALGO = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+load_dotenv()
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# ---------------------------------------------------------
+# 1. Load and Format the Public Key
+# ---------------------------------------------------------
+RAW_PUBLIC_KEY = os.getenv("CLERK_PEM_PUBLIC_KEY")
 
+# IMPORTANT: Convert the literal "\n" strings back to actual newlines
+if RAW_PUBLIC_KEY:
+    PUBLIC_KEY = RAW_PUBLIC_KEY.replace("\\n", "\n")
+else:
+    print("⚠️ WARNING: CLERK_PEM_PUBLIC_KEY is missing in .env")
+    PUBLIC_KEY = None
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-
-def verify_password(password: str, hash_: str) -> bool:
-    return pwd_context.verify(password, hash_)
-
-
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    token = jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGO)
-    return token
-
-
-def decode_access_token(token: str):
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGO])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-
-def get_user_from_token(token: str):
-    """Return user dict or None (raises if token invalid)."""
-    payload = decode_access_token(token)
-    user_id = payload.get("user_id")
-    if not user_id:
-        return None
-    user = users_collection.find_one({"_id": ObjectId(user_id)})
-    if user:
-        user["_id"] = str(user["_id"])
-    return user
-
-
+# ---------------------------------------------------------
+# 2. The Main Auth Function
+# ---------------------------------------------------------
 async def get_current_user_optional(request: Request):
-    """Try to get user from Authorization header. Return user dict or None."""
-    auth = request.headers.get("authorization")
-    if not auth:
-        return None
-    parts = auth.split()
-    if len(parts) != 2 or parts[0].lower() != "bearer":
-        return None
-    token = parts[1]
+    """
+    Checks the 'Authorization' header. 
+    - If valid token: Returns user dict (with '_id' and 'email').
+    - If no token or invalid: Returns None (does not block the user).
+    """
+    
+    # 1. Get the header
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        return None  # Guest user
+
     try:
-        return get_user_from_token(token)
-    except HTTPException:
+        # 2. Extract token (Format: "Bearer <token>")
+        scheme, token = auth_header.split()
+        if scheme.lower() != "bearer":
+            return None
+        
+        # 3. Verify Token using the Public Key
+        # We allow a small 'leeway' for clock differences between servers
+        payload = jwt.decode(token, PUBLIC_KEY, algorithms=["RS256"], leeway=10)
+
+        # 4. Return User Info
+        # We map Clerk's 'sub' (Subject ID) to our database '_id' concept
+        return {
+            "_id": payload.get("sub"),
+            "email": payload.get("email", "")
+        }
+
+    except (jwt.ExpiredSignatureError, jwt.DecodeError, Exception) as e:
+        # If token is invalid, just treat them as a guest (don't crash)
+        print(f"Auth Error: {str(e)}")
         return None

@@ -6,12 +6,12 @@ from services.ai_service import (
     generate_notes,
     explain_topic,
     answer_question,
-    generate_mindmap,  # <--- Ensure this is imported
+    generate_mindmap,
     generate_flashcards
 )
 from services.history_service import save_history
 from auth_utils import get_current_user_optional
-from db.mongo import notes_collection
+# Removed unused import: notes_collection 
 import json
 
 router = APIRouter()
@@ -29,6 +29,7 @@ class NoteRequest(BaseModel):
 class MCQRequest(BaseModel):
     text: str
     num_questions: int = 5
+
 class SummarizeTextRequest(BaseModel):
     text: str
 
@@ -41,6 +42,7 @@ class MindMapRequest(BaseModel):
 
 class FlashcardRequest(BaseModel):
     text: str
+
 # ----------------------------
 # 📌 ROUTES
 # ----------------------------
@@ -67,6 +69,7 @@ async def explain_topic_route(request: ExplainRequest, req: Request, background_
 
         return {"explanation": explanation}
     except Exception as e:
+        print(f"Error in /explain: {e}") # Log error to terminal
         return {"error": f"Explain error: {str(e)}"}
 
 
@@ -76,9 +79,6 @@ async def make_notes(request: NoteRequest, req: Request, background_tasks: Backg
     try:
         # 1. Generate Notes (Returns Dict)
         notes_data = generate_notes(request.text)
-
-        # 🚨 ENSURE THIS LINE IS DELETED OR COMMENTED OUT:
-        # data = json.loads(notes_data) 
 
         # 2. Get User (for history)
         user = await get_current_user_optional(req)
@@ -92,10 +92,10 @@ async def make_notes(request: NoteRequest, req: Request, background_tasks: Backg
                 result_data=notes_data
             )
 
-        # 3. Return notes_data DIRECTLY
         return {"notes_data": notes_data}
 
     except Exception as e:
+        print(f"Error in /make-notes: {e}")
         return {"error": f"Notes error: {str(e)}"}
 
 
@@ -104,7 +104,6 @@ async def make_notes(request: NoteRequest, req: Request, background_tasks: Backg
 async def make_mcq(request: MCQRequest, req: Request, background_tasks: BackgroundTasks):
     try:
         # 1. Validation: Limit the number to avoid timeout/token errors
-        # (e.g., max 20 questions at a time)
         count = max(1, min(request.num_questions, 20))
 
         # 2. The Professional Prompt
@@ -138,7 +137,6 @@ async def make_mcq(request: MCQRequest, req: Request, background_tasks: Backgrou
         raw_response = ai(prompt)
         
         # 4. Cleaning Step (Safety Net)
-        # Note: We use the 'json' imported at the top of the file
         try:
             # Find the first '[' and last ']' to ignore any extra text
             start_index = raw_response.find('[')
@@ -148,11 +146,13 @@ async def make_mcq(request: MCQRequest, req: Request, background_tasks: Backgrou
                 clean_json = raw_response[start_index:end_index]
                 mcqs = json.loads(clean_json)
             else:
+                print("Error: No JSON brackets found in AI response")
                 mcqs = [] # Fallback if AI fails completely
         except json.JSONDecodeError:
+            print(f"Error: JSON Decode failed. Raw response: {raw_response}")
             return {"error": "Failed to parse AI response into JSON."}
 
-        # 5. Get User & Save History (Added this back for you!)
+        # 5. Get User & Save History
         user = await get_current_user_optional(req)
 
         if user:
@@ -167,6 +167,7 @@ async def make_mcq(request: MCQRequest, req: Request, background_tasks: Backgrou
         return {"mcqs": mcqs}
 
     except Exception as e:
+        print(f"Error in /make-mcq: {e}")
         return {"error": f"MCQ error: {str(e)}"}
 
 
@@ -192,6 +193,7 @@ async def summarize_any_text(request: SummarizeTextRequest, req: Request, backgr
 
         return {"summary": summary}
     except Exception as e:
+        print(f"Error in /summarize-text: {e}")
         return {"error": f"Summary error: {str(e)}"}
 
 
@@ -218,10 +220,11 @@ async def qna(request: QnARequest, req: Request, background_tasks: BackgroundTas
         return {"answer_data": answer_data}
 
     except Exception as e:
+        print(f"Error in /qna: {e}")
         return {"error": f"QnA error: {str(e)}"}
 
 
-# 6️⃣ AI Mind Map (Corrected Indentation)
+# 6️⃣ AI Mind Map
 @router.post("/make-mindmap")
 async def make_mindmap_route(request: MindMapRequest, req: Request, background_tasks: BackgroundTasks):
     try:
@@ -242,6 +245,7 @@ async def make_mindmap_route(request: MindMapRequest, req: Request, background_t
 
         return {"mermaid_code": mermaid_code}
     except Exception as e:
+        print(f"Error in /make-mindmap: {e}")
         return {"error": f"MindMap error: {str(e)}"}
     
 # 7️⃣ Generate Flashcards
@@ -264,4 +268,5 @@ async def make_flashcards_route(request: FlashcardRequest, req: Request, backgro
 
         return {"flashcards": cards}
     except Exception as e:
+        print(f"Error in /make-flashcards: {e}")
         return {"error": f"Flashcard error: {str(e)}"}

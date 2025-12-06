@@ -1,17 +1,32 @@
+# Core Framework
 fastapi
 uvicorn
-pydantic
-python-dotenv
-pdfplumber
-pymongo
-groq
-PyPDF2
-python-multipart
 starlette
+python-multipart
+python-dotenv
+requests
+
+# Data Validation
+pydantic
+pydantic[email]
+email-validator
+
+# Database
+pymongo
+
+# AI & LLM
+groq
+
+# PDF Processing
+pdfplumber
+PyPDF2
 PyMuPDF
+
+# Authentication & Security
 passlib[bcrypt]==1.7.4
 bcrypt==3.2.2
 pyjwt
-requests
-email-validator
-pydantic[email]
+cryptography
+
+# Webhooks (Clerk)
+svix

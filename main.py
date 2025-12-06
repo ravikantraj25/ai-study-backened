@@ -10,18 +10,18 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 
-# 📌 IMPORTS
-from routes.summarize import router as summarize_router  # PDF Summary
-from routes.study_assistant import router as study_router # Notes, MCQ, QnA, MindMap, Explain
-from routes.auth import router as auth_router             # Login, Register
-from routes.history import router as history_router       # History
+# 📌 IMPORTS (Updated to match your "routes" folder structure)
+from routes.summarize import router as summarize_router   # Matches summarize.py
+from routes.study_assistant import router as study_router # Matches study_assistant.py
+from routes.history import router as history_router       # Matches history.py
+from routes.webhooks import router as webhooks_router     # Matches webhooks.py
 
 # ------------------------------------------------------------
 # Middleware: Allow large PDF uploads (20 MB)
 # ------------------------------------------------------------
 class LimitUploadSizeMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20MB
+        MAX_UPLOAD_SIZE = 20 * 1024 * 1024  # 20MB limit
         content_length = request.headers.get("content-length")
 
         if content_length and int(content_length) > MAX_UPLOAD_SIZE:
@@ -44,8 +44,13 @@ app = FastAPI(
 
 
 # ------------------------------------------------------------
-# CORS (IMPORTANT: must be before routes)
+# MIDDLEWARE (Order is critical!)
 # ------------------------------------------------------------
+# 1. Add Upload Limit Middleware (Inner layer)
+app.add_middleware(LimitUploadSizeMiddleware)
+
+# 2. Add CORS Middleware (Outer layer - Runs first on incoming requests)
+# This ensures that even if a file is too large, the frontend gets the correct CORS headers to read the error.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],          
@@ -56,34 +61,24 @@ app.add_middleware(
 
 
 # ------------------------------------------------------------
-# Add upload size middleware BEFORE routers
+# Routers (Grouped with prefixes)
 # ------------------------------------------------------------
-app.add_middleware(LimitUploadSizeMiddleware)
 
+# 1. PDF Tools -> http://localhost:8000/api/pdf/summarize
+app.include_router(summarize_router, prefix="/api/pdf", tags=["PDF Tools"])
 
-# ------------------------------------------------------------
-# Routers
-# ------------------------------------------------------------
-# 1. PDF Tools
-app.include_router(summarize_router, tags=["PDF Tools"])
+# 2. AI Study Tools -> http://localhost:8000/api/study/explain
+app.include_router(study_router, prefix="/api/study", tags=["AI Study Tools"])
 
-# 2. AI Study Tools (Notes, MCQ, QnA, Explain, Mind Map)
-app.include_router(study_router, tags=["AI Study Tools"])
+# 3. Webhooks -> http://localhost:8000/api/webhooks/clerk
+app.include_router(webhooks_router, prefix="/api/webhooks", tags=["Webhooks"])
 
-# 3. Authentication
-app.include_router(auth_router, tags=["Authentication"])
-
-# 4. User History
-app.include_router(history_router, prefix="/api", tags=["History"]) 
-# Note: I added prefix="/api" here because in your history route file you defined the route as "/history"
-# If you want the URL to be /history, remove prefix. If you want /api/history, keep it. 
-# Based on your frontend code (API + "/history"), you likely DON'T need the prefix here unless you change frontend.
-# Let's keep it simple:
-# app.include_router(history_router, tags=["History"])
+# 4. User History -> http://localhost:8000/api/history/get
+app.include_router(history_router, prefix="/api/history", tags=["History"]) 
 
 
 # ------------------------------------------------------------
-# Test Routes
+# Test Route
 # ------------------------------------------------------------
 @app.get("/")
 def home():
