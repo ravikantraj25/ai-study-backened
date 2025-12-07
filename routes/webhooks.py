@@ -10,7 +10,7 @@ router = APIRouter(tags=["webhooks"])
 # You get this from Clerk Dashboard later
 CLERK_WEBHOOK_SECRET = os.getenv("CLERK_WEBHOOK_SECRET")
 
-@router.post("/api/webhooks/clerk")
+@router.post("/clerk")
 async def clerk_webhook(request: Request):
     """
     Listens for 'user.created' events from Clerk 
